@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase'
 
 const ADMIN_NAV = [
   { href: '/', label: 'Overview', icon: '⬛' },
+  { href: '/messages', label: 'Messages', icon: '✉' },
   { href: '/properties', label: 'Properties', icon: '🏠' },
   { href: '/contacts', label: 'Contacts', icon: '👥' },
   { href: '/transactions', label: 'Transactions', icon: '💰' },
@@ -16,6 +17,7 @@ const ADMIN_NAV = [
 ]
 
 const EMPLOYEE_NAV = [
+  { href: '/messages', label: 'Messages', icon: '✉' },
   { href: '/properties', label: 'Properties', icon: '🏠' },
   { href: '/contacts', label: 'Contacts', icon: '👥' },
   { href: '/follow-ups', label: 'Follow-Ups', icon: '✓' },

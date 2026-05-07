@@ -107,3 +107,16 @@ export interface KPI {
   category: 'sales' | 'portfolio' | 'content' | 'operations' | null
   updated_at: string
 }
+
+export interface Message {
+  id: string
+  contact_id: string | null
+  direction: 'inbound' | 'outbound'
+  body: string
+  channel: 'openphone' | 'facebook' | 'instagram' | 'furnished_finder' | 'email'
+  sent_by: string | null
+  is_read: boolean
+  external_id: string | null
+  created_at: string
+  contacts?: { name: string; phone: string | null; type: string | null; fb_id: string | null } | null
+}
