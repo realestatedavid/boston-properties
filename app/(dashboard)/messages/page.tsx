@@ -21,8 +21,14 @@ const TYPE_COLORS: Record<string, string> = {
   past_client: 'text-dim',
 }
 
-const TABS = ['all', 'tenant', 'ff_lead'] as const
+const TABS = ['leads', 'tenants', 'owners'] as const
 type Tab = typeof TABS[number]
+
+const TAB_LABEL: Record<Tab, string> = {
+  leads: 'Leads',
+  tenants: 'Tenants',
+  owners: 'Owners',
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -49,7 +55,7 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
-  const [tab, setTab] = useState<Tab>('all')
+  const [tab, setTab] = useState<Tab>('leads')
   const [search, setSearch] = useState('')
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
@@ -143,7 +149,10 @@ export default function MessagesPage() {
   }
 
   const filtered = conversations.filter(c => {
-    if (tab !== 'all' && c.contact.type !== tab) return false
+    const type = c.contact.type
+    if (tab === 'tenants' && type !== 'tenant') return false
+    if (tab === 'owners' && type !== 'owner') return false
+    if (tab === 'leads' && (type === 'tenant' || type === 'owner')) return false
     if (search) {
       const q = search.toLowerCase()
       return c.contact.name.toLowerCase().includes(q) ||
@@ -186,7 +195,7 @@ export default function MessagesPage() {
                 tab === t ? 'text-content border-b border-blue' : 'text-dim'
               }`}
             >
-              {t === 'ff_lead' ? 'FF' : t}
+              {TAB_LABEL[t]}
             </button>
           ))}
         </div>
