@@ -8,22 +8,16 @@ import { createClient } from '@/lib/supabase'
 const ADMIN_NAV = [
   { href: '/rental-launch', label: 'Rental Launch' },
   { href: '/messages', label: 'Messages' },
-  { href: '/leads', label: 'Leads' },
   { href: '/contacts', label: 'Contacts' },
   { href: '/properties', label: 'Properties' },
   { href: '/transactions', label: 'Ledger' },
-  { href: '/follow-ups', label: 'Follow-Ups' },
-  { href: '/maintenance', label: 'Maintenance' },
 ]
 
 const EMPLOYEE_NAV = [
   { href: '/rental-launch', label: 'Rental Launch' },
   { href: '/messages', label: 'Messages' },
-  { href: '/leads', label: 'Leads' },
   { href: '/contacts', label: 'Contacts' },
   { href: '/properties', label: 'Properties' },
-  { href: '/follow-ups', label: 'Follow-Ups' },
-  { href: '/maintenance', label: 'Maintenance' },
 ]
 
 export default function Nav() {
