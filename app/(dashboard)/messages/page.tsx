@@ -296,18 +296,18 @@ export default function MessagesPage() {
                 <div className="text-xs text-dim text-center py-8">No messages yet</div>
               ) : (
                 messages.map(msg => (
-                  <div key={msg.id} className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] px-3 py-2 text-xs rounded-sm ${
+                  <div key={msg.id} className={`flex items-end gap-2 ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[72%] px-4 py-2.5 text-[13px] leading-relaxed ${
                       msg.direction === 'outbound'
-                        ? 'bg-blue text-white'
-                        : 'bg-panel border border-edge text-content'
+                        ? 'bg-blue text-white rounded-[20px] rounded-br-[4px]'
+                        : 'bg-panel border border-edge text-content rounded-[20px] rounded-bl-[4px]'
                     }`}>
                       <div>{msg.body}</div>
-                      <div className={`text-[9px] mt-1 flex items-center gap-1.5 ${
+                      <div className={`text-[10px] mt-1 flex items-center gap-1 ${
                         msg.direction === 'outbound' ? 'text-white/60 justify-end' : 'text-dim'
                       }`}>
                         <span>{fmtTime(msg.created_at)}</span>
-                        {msg.channel && <span className="opacity-60">{CHANNEL_LABEL[msg.channel]}</span>}
+                        {msg.channel && <span className="opacity-50">{CHANNEL_LABEL[msg.channel]}</span>}
                       </div>
                     </div>
                   </div>
