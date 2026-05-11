@@ -16,7 +16,9 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, skipped: payload.type })
   }
 
-  const { from, body, conversationId } = payload.data?.object ?? payload.data
+  const msgObj = payload.data?.object ?? payload.data
+  const { from, body, conversationId, media } = msgObj
+  const mediaUrls: string[] = Array.isArray(media) ? media.map((m: { url: string }) => m.url).filter(Boolean) : []
   const supabase = await createServerSupabaseClient()
 
   let { data: contact } = await supabase
@@ -37,13 +39,14 @@ export async function POST(req: Request) {
   await supabase.from('messages').insert({
     contact_id: contact.id,
     direction: 'inbound',
-    body,
+    body: body ?? '',
     channel: 'openphone',
     external_id: conversationId,
     is_read: false,
+    payload: mediaUrls.length > 0 ? { media: mediaUrls } : null,
   })
 
-  const keyword = body.trim().toUpperCase()
+  const keyword = (body ?? '').trim().toUpperCase()
   if (KEYWORDS[keyword]) {
     await sendMessage(from, KEYWORDS[keyword])
     if (keyword === 'RENEW') {

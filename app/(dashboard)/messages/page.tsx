@@ -237,23 +237,41 @@ function MessagesInner() {
               {messages.length === 0 ? (
                 <div className="text-xs text-dim text-center py-8">No messages yet</div>
               ) : (
-                messages.map(msg => (
-                  <div key={msg.id} className={`flex items-end gap-2 ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[72%] px-4 py-2.5 text-[13px] leading-relaxed ${
-                      msg.direction === 'outbound'
-                        ? 'bg-blue text-white rounded-[20px] rounded-br-[4px]'
-                        : 'bg-panel border border-edge text-content rounded-[20px] rounded-bl-[4px]'
-                    }`}>
-                      <div>{msg.body}</div>
-                      <div className={`text-[10px] mt-1 flex items-center gap-1 ${
-                        msg.direction === 'outbound' ? 'text-white/60 justify-end' : 'text-dim'
+                messages.map(msg => {
+                  const isOut = msg.direction === 'outbound'
+                  const mediaUrls: string[] = (msg.payload as { media?: string[] } | null)?.media ?? []
+                  return (
+                    <div key={msg.id} className={`flex items-end gap-2 ${isOut ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[72%] text-[13px] leading-relaxed overflow-hidden ${
+                        isOut
+                          ? 'bg-blue text-white rounded-[20px] rounded-br-[4px]'
+                          : 'bg-panel border border-edge text-content rounded-[20px] rounded-bl-[4px]'
                       }`}>
-                        <span>{fmtTime(msg.created_at)}</span>
-                        {msg.channel && <span className="opacity-50">{CHANNEL_LABEL[msg.channel]}</span>}
+                        {mediaUrls.map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt="attachment"
+                            className="w-full max-w-xs block rounded-[16px]"
+                          />
+                        ))}
+                        {msg.body ? (
+                          <div className={`px-4 py-2.5 ${mediaUrls.length > 0 ? 'pt-1' : ''}`}>
+                            <div>{msg.body}</div>
+                            <div className={`text-[10px] mt-1 flex items-center gap-1 ${isOut ? 'text-white/60 justify-end' : 'text-dim'}`}>
+                              <span>{fmtTime(msg.created_at)}</span>
+                              {msg.channel && <span className="opacity-50">{CHANNEL_LABEL[msg.channel]}</span>}
+                            </div>
+                          </div>
+                        ) : mediaUrls.length > 0 ? (
+                          <div className={`px-3 pb-1 text-[10px] ${isOut ? 'text-white/60 text-right' : 'text-dim'}`}>
+                            {fmtTime(msg.created_at)}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
               <div ref={bottomRef} />
             </div>

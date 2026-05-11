@@ -123,6 +123,7 @@ export interface Message {
   sent_by: string | null
   is_read: boolean
   external_id: string | null
+  payload: { media?: string[] } | null
   created_at: string
   contacts?: { name: string; phone: string | null; type: string | null; fb_id: string | null } | null
 }
