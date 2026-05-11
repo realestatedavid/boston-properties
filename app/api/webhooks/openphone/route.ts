@@ -11,8 +11,9 @@ const KEYWORDS: Record<string, string> = {
 
 export async function POST(req: Request) {
   const payload = await req.json()
+  console.log('OPENPHONE_WEBHOOK', JSON.stringify(payload))
   if (payload.type !== 'message.received') {
-    return Response.json({ ok: true })
+    return Response.json({ ok: true, skipped: payload.type })
   }
 
   const { from, body, conversationId } = payload.data?.object ?? payload.data
