@@ -34,12 +34,18 @@ export interface Contact {
   name: string
   phone: string | null
   email: string | null
-  type: 'tenant' | 'ff_lead' | 'buyer' | 'seller' | 'investor' | 'past_client' | null
+  type: 'tenant' | 'ff_lead' | 'owner' | 'investor' | 'past_client' | 'buyer' | 'seller' | null
   status: 'active' | 'past' | 'nurture' | 'placed'
   source: 'openphone' | 'facebook' | 'furnished_finder' | 'referral' | 'direct' | null
   assigned_to: string | null
   notes: string | null
   last_contact: string | null
+  lead_stage: 'inquiry' | 'showing_scheduled' | 'showed' | 'applied' | 'approved' | 'placed' | 'lost' | null
+  interested_room_id: string | null
+  budget: number | null
+  move_in_date: string | null
+  fb_id: string | null
+  property_id: string | null
   created_at: string
 }
 

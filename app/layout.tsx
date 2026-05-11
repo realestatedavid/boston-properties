@@ -1,27 +1,27 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Mono } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 
-const dmMono = DM_Mono({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['300', '400', '500'],
-  variable: '--font-dm-mono',
+  weight: ['400', '500', '600'],
+  variable: '--font-inter',
   display: 'swap',
 })
 
 export const metadata: Metadata = {
-  title: 'Boston Properties',
-  description: 'Property management command center',
+  title: 'Rental Launch OS',
+  description: 'Rental Launch OS — property management command center',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'BostonProp',
+    title: 'RentalOS',
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#09090b',
+  themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -29,8 +29,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmMono.variable} h-full`}>
-      <body className="h-full font-mono antialiased">{children}</body>
+    <html lang="en" className={`${inter.variable} h-full`}>
+      <body className="h-full font-sans antialiased">{children}</body>
     </html>
   )
 }

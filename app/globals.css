@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-dark: #09090b;
-  --color-panel: #111113;
-  --color-edge: #1c1c1f;
-  --color-content: #e4e4e7;
-  --color-dim: #71717a;
-  --color-fade: #3f3f46;
-  --color-urgent: #ef4444;
-  --color-warn: #f59e0b;
-  --color-good: #10b981;
-  --color-blue: #3b82f6;
-  --font-mono: 'DM Mono', monospace;
+  --color-dark: #ffffff;
+  --color-panel: #f7f7f8;
+  --color-edge: #ebebec;
+  --color-content: #111111;
+  --color-dim: #6b7280;
+  --color-fade: #b0b3b8;
+  --color-urgent: #dc2626;
+  --color-warn: #d97706;
+  --color-good: #059669;
+  --color-blue: #2563eb;
+  --font-sans: 'Inter', sans-serif;
 }
 
 *, *::before, *::after {
@@ -23,40 +23,40 @@ html, body {
 }
 
 body {
-  background-color: #09090b;
-  color: #e4e4e7;
-  font-family: 'DM Mono', monospace;
+  background-color: #ffffff;
+  color: #111111;
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 * {
-  border-color: #1c1c1f;
+  border-color: #ebebec;
 }
 
 input, textarea, select {
-  background-color: #111113;
-  color: #e4e4e7;
-  font-family: 'DM Mono', monospace;
+  background-color: #ffffff;
+  color: #111111;
+  font-family: 'Inter', sans-serif;
+  border-radius: 6px;
 }
 
 input::placeholder, textarea::placeholder {
-  color: #71717a;
+  color: #b0b3b8;
 }
 
 :focus-visible {
-  outline: 1px solid #3b82f6;
+  outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: #d4d4d8;
   border-radius: 2px;
 }
