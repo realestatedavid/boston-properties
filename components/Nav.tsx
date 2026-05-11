@@ -5,6 +5,12 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useRole } from '@/components/RoleProvider'
 import { createClient } from '@/lib/supabase'
 
+const MESSAGE_INBOXES = [
+  { href: '/messages?inbox=leads', label: 'Leads' },
+  { href: '/messages?inbox=tenants', label: 'Tenants' },
+  { href: '/messages?inbox=owners', label: 'Owners' },
+]
+
 const ADMIN_NAV = [
   { href: '/rental-launch', label: 'Rental Launch' },
   { href: '/messages', label: 'Messages' },
@@ -25,6 +31,7 @@ export default function Nav() {
   const router = useRouter()
   const { role, fullName } = useRole()
   const navItems = role === 'admin' ? ADMIN_NAV : EMPLOYEE_NAV
+  const onMessages = pathname.startsWith('/messages')
 
   async function handleLogout() {
     const supabase = createClient()
@@ -34,7 +41,7 @@ export default function Nav() {
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/'
-    return pathname.startsWith(href)
+    return pathname.startsWith(href.split('?')[0])
   }
 
   return (
@@ -48,17 +55,39 @@ export default function Nav() {
 
         <div className="flex-1 py-3 overflow-y-auto">
           {navItems.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block px-5 py-2 text-sm transition-colors rounded-none ${
-                isActive(item.href)
-                  ? 'text-blue font-medium'
-                  : 'text-dim hover:text-content'
-              }`}
-            >
-              {item.label}
-            </Link>
+            <div key={item.href}>
+              <Link
+                href={item.href}
+                className={`block px-5 py-2 text-sm transition-colors ${
+                  isActive(item.href) ? 'text-blue font-medium' : 'text-dim hover:text-content'
+                }`}
+              >
+                {item.label}
+              </Link>
+
+              {/* Inbox sub-items under Messages */}
+              {item.href === '/messages' && onMessages && (
+                <div className="mb-1">
+                  {MESSAGE_INBOXES.map(inbox => {
+                    const param = inbox.href.split('=')[1]
+                    const isInboxActive = typeof window !== 'undefined'
+                      ? new URLSearchParams(window.location.search).get('inbox') === param
+                      : false
+                    return (
+                      <Link
+                        key={inbox.href}
+                        href={inbox.href}
+                        className={`block pl-9 pr-5 py-1.5 text-xs transition-colors ${
+                          isInboxActive ? 'text-blue' : 'text-dim hover:text-content'
+                        }`}
+                      >
+                        {inbox.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           ))}
         </div>
 

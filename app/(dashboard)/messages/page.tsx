@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import type { Contact, Message } from '@/lib/types'
 
@@ -12,28 +13,17 @@ const CHANNEL_LABEL: Record<string, string> = {
   email: 'Email',
 }
 
-const INBOXES = [
-  {
-    id: 'leads' as const,
-    label: 'Leads',
-    sub: 'New inquiries',
-    match: (type: string | undefined) => type !== 'tenant' && type !== 'owner',
-  },
-  {
-    id: 'tenants' as const,
-    label: 'Tenants',
-    sub: '(978) 848-4320',
-    match: (type: string | undefined) => type === 'tenant',
-  },
-  {
-    id: 'owners' as const,
-    label: 'Owners',
-    sub: 'Property owners',
-    match: (type: string | undefined) => type === 'owner',
-  },
-]
+const INBOX_MATCH: Record<string, (type: string | undefined) => boolean> = {
+  leads:   t => t !== 'tenant' && t !== 'owner',
+  tenants: t => t === 'tenant',
+  owners:  t => t === 'owner',
+}
 
-type InboxId = typeof INBOXES[number]['id']
+const INBOX_LABEL: Record<string, string> = {
+  leads: 'Leads',
+  tenants: 'Tenants',
+  owners: 'Owners',
+}
 
 interface Conversation {
   contact: Contact
@@ -57,9 +47,10 @@ function fmtTime(dateStr: string): string {
 
 export default function MessagesPage() {
   const supabase = createClient()
+  const searchParams = useSearchParams()
+  const inbox = searchParams.get('inbox') ?? 'leads'
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [messages, setMessages] = useState<Message[]>([])
-  const [inbox, setInbox] = useState<InboxId | null>(null)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [search, setSearch] = useState('')
   const [reply, setReply] = useState('')
@@ -139,16 +130,9 @@ export default function MessagesPage() {
     setChannel(contact.fb_id ? 'facebook' : 'openphone')
   }
 
-  function unreadFor(inboxDef: typeof INBOXES[number]) {
-    return conversations
-      .filter(c => inboxDef.match(c.contact.type))
-      .reduce((sum, c) => sum + c.unreadCount, 0)
-  }
-
-  const activeInbox = INBOXES.find(i => i.id === inbox)
-
+  const matchInbox = INBOX_MATCH[inbox] ?? INBOX_MATCH.leads
   const filtered = conversations.filter(c => {
-    if (!activeInbox?.match(c.contact.type)) return false
+    if (!matchInbox(c.contact.type ?? undefined)) return false
     if (search) {
       const q = search.toLowerCase()
       return (
@@ -160,64 +144,19 @@ export default function MessagesPage() {
     return true
   })
 
-  // Mobile: show inbox list → convo list → thread
-  const mobileView = selectedContact ? 'thread' : inbox ? 'convos' : 'inboxes'
+  // Mobile: convo list → thread
+  const mobileView = selectedContact ? 'thread' : 'convos'
 
   return (
     <div className="flex overflow-hidden" style={{ height: 'calc(100dvh - 4rem)' }}>
 
-      {/* Panel 1 — Inbox list */}
-      <div className={`flex flex-col border-r border-edge shrink-0 w-full md:w-52
-        ${mobileView !== 'inboxes' ? 'hidden md:flex' : 'flex'}`}>
-        <div className="px-4 py-3 border-b border-edge shrink-0">
-          <h1 className="text-sm font-medium text-content">Inboxes</h1>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {INBOXES.map(inboxDef => {
-            const unread = unreadFor(inboxDef)
-            const active = inbox === inboxDef.id
-            return (
-              <button
-                key={inboxDef.id}
-                onClick={() => { setInbox(inboxDef.id); setSelectedContact(null); setSearch('') }}
-                className={`w-full text-left px-4 py-3.5 border-b border-edge transition-colors hover:bg-panel/60
-                  ${active ? 'bg-panel border-l-2 border-l-blue' : ''}`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <span className={`text-sm font-medium ${active ? 'text-blue' : 'text-content'}`}>
-                    {inboxDef.label}
-                  </span>
-                  {unread > 0 && (
-                    <span className="text-[9px] bg-urgent text-white px-1.5 py-0.5 rounded-sm shrink-0">
-                      {unread}
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-dim">{inboxDef.sub}</div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Panel 2 — Conversation list */}
+      {/* Panel 1 — Conversation list */}
       <div className={`flex flex-col border-r border-edge shrink-0 w-full md:w-72
         ${mobileView !== 'convos' ? 'hidden md:flex' : 'flex'}`}>
-        {!inbox ? (
-          <div className="flex-1 flex items-center justify-center text-xs text-dim">
-            Select an inbox
-          </div>
-        ) : (
           <>
             <div className="px-4 py-3 border-b border-edge shrink-0">
-              <div className="flex items-center gap-2 mb-2">
-                <button
-                  onClick={() => { setInbox(null); setSelectedContact(null) }}
-                  className="md:hidden text-dim hover:text-content text-sm leading-none"
-                >
-                  ←
-                </button>
-                <span className="text-sm font-medium text-content">{activeInbox?.label}</span>
+              <div className="text-sm font-medium text-content mb-2">
+                {INBOX_LABEL[inbox] ?? 'Messages'}
               </div>
               <input
                 value={search}
@@ -254,10 +193,9 @@ export default function MessagesPage() {
               )}
             </div>
           </>
-        )}
       </div>
 
-      {/* Panel 3 — Thread */}
+      {/* Panel 2 — Thread */}
       <div className={`flex flex-col flex-1 overflow-hidden
         ${mobileView !== 'thread' ? 'hidden md:flex' : 'flex'}`}>
         {!selectedContact ? (
