@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import type { Contact, Message } from '@/lib/types'
 
@@ -13,16 +13,19 @@ const CHANNEL_LABEL: Record<string, string> = {
   email: 'Email',
 }
 
-const INBOX_MATCH: Record<string, (type: string | undefined) => boolean> = {
-  leads:   t => t !== 'tenant' && t !== 'owner',
-  tenants: t => t === 'tenant',
-  owners:  t => t === 'owner',
-}
+const INBOXES = ['leads', 'tenants', 'owners'] as const
+type Inbox = typeof INBOXES[number]
 
-const INBOX_LABEL: Record<string, string> = {
+const INBOX_LABEL: Record<Inbox, string> = {
   leads: 'Leads',
   tenants: 'Tenants',
   owners: 'Owners',
+}
+
+const INBOX_MATCH: Record<Inbox, (t: string | null | undefined) => boolean> = {
+  leads:   t => t !== 'tenant' && t !== 'owner',
+  tenants: t => t === 'tenant',
+  owners:  t => t === 'owner',
 }
 
 interface Conversation {
@@ -51,12 +54,13 @@ export default function MessagesPage() {
 
 function MessagesInner() {
   const supabase = createClient()
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const inbox = searchParams.get('inbox') ?? 'leads'
+  const inbox = (searchParams.get('inbox') as Inbox) ?? 'leads'
+
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
-  const [search, setSearch] = useState('')
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -134,92 +138,119 @@ function MessagesInner() {
     setChannel(contact.fb_id ? 'facebook' : 'openphone')
   }
 
-  const matchInbox = INBOX_MATCH[inbox] ?? INBOX_MATCH.leads
-  const filtered = conversations.filter(c => {
-    if (!matchInbox(c.contact.type ?? undefined)) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return (
-        c.contact.name.toLowerCase().includes(q) ||
-        c.contact.phone?.includes(q) ||
-        c.lastMessage.body.toLowerCase().includes(q)
-      )
-    }
-    return true
-  })
+  function unreadCount(tab: Inbox) {
+    return conversations
+      .filter(c => INBOX_MATCH[tab](c.contact.type))
+      .reduce((s, c) => s + c.unreadCount, 0)
+  }
 
-  // Mobile: convo list → thread
-  const mobileView = selectedContact ? 'thread' : 'convos'
+  const filtered = conversations.filter(c => INBOX_MATCH[inbox](c.contact.type))
+
+  const showThread = !!selectedContact
 
   return (
     <div className="flex overflow-hidden" style={{ height: 'calc(100dvh - 4rem)' }}>
 
-      {/* Panel 1 — Conversation list */}
-      <div className={`flex flex-col border-r border-edge shrink-0 w-full md:w-72
-        ${mobileView !== 'convos' ? 'hidden md:flex' : 'flex'}`}>
-          <>
-            <div className="px-4 py-3 border-b border-edge shrink-0">
-              <div className="text-sm font-medium text-content mb-2">
-                {INBOX_LABEL[inbox] ?? 'Messages'}
-              </div>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search..."
-                className="w-full bg-dark border border-edge px-2 py-1.5 text-xs text-content focus:border-blue outline-none"
-              />
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {loading ? (
-                <div className="p-4 text-xs text-dim animate-pulse">Loading...</div>
-              ) : filtered.length === 0 ? (
-                <div className="p-4 text-xs text-dim">No conversations.</div>
-              ) : (
-                filtered.map(({ contact, lastMessage, unreadCount }) => (
-                  <button
-                    key={contact.id}
-                    onClick={() => selectContact(contact)}
-                    className={`w-full text-left px-4 py-3 border-b border-edge hover:bg-panel/50 transition-colors
-                      ${selectedContact?.id === contact.id ? 'bg-panel' : ''}`}
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-1">
-                      <span className={`text-xs font-medium truncate ${unreadCount > 0 ? 'text-content' : 'text-dim'}`}>
-                        {contact.name}
+      {/* Left: inbox list */}
+      <div className={`flex flex-col w-full md:w-80 shrink-0 border-r border-edge ${showThread ? 'hidden md:flex' : 'flex'}`}>
+
+        {/* Top tabs */}
+        <div className="flex border-b border-edge shrink-0">
+          {INBOXES.map(tab => {
+            const unread = unreadCount(tab)
+            const active = inbox === tab
+            return (
+              <button
+                key={tab}
+                onClick={() => {
+                  setSelectedContact(null)
+                  router.push(`/messages?inbox=${tab}`)
+                }}
+                className={`flex-1 py-3 text-xs font-medium transition-colors relative ${
+                  active ? 'text-content' : 'text-dim hover:text-content'
+                }`}
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  {INBOX_LABEL[tab]}
+                  {unread > 0 && (
+                    <span className="bg-blue text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center shrink-0">
+                      {unread}
+                    </span>
+                  )}
+                </span>
+                {active && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue" />}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Conversation list */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="p-4 text-xs text-dim animate-pulse">Loading...</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-6 text-xs text-dim text-center">No conversations yet.</div>
+          ) : (
+            filtered.map(({ contact, lastMessage, unreadCount: uc }) => (
+              <button
+                key={contact.id}
+                onClick={() => selectContact(contact)}
+                className={`w-full text-left flex items-center gap-3 px-4 py-3.5 border-b border-edge hover:bg-panel/60 transition-colors ${
+                  selectedContact?.id === contact.id ? 'bg-panel' : ''
+                }`}
+              >
+                {/* Avatar */}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-medium ${
+                  uc > 0 ? 'bg-blue text-white' : 'bg-edge text-dim'
+                }`}>
+                  {contact.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <span className={`text-sm truncate ${uc > 0 ? 'font-semibold text-content' : 'text-content'}`}>
+                      {contact.name}
+                    </span>
+                    <span className="text-[10px] text-dim shrink-0">{timeAgo(lastMessage.created_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs truncate flex-1 ${uc > 0 ? 'text-content' : 'text-dim'}`}>
+                      {lastMessage.body || 'Image'}
+                    </span>
+                    {uc > 0 && (
+                      <span className="bg-blue text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center shrink-0">
+                        {uc}
                       </span>
-                      <span className="text-[9px] text-dim shrink-0">{timeAgo(lastMessage.created_at)}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-dim truncate flex-1">{lastMessage.body}</span>
-                      {unreadCount > 0 && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue" />}
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
       </div>
 
-      {/* Panel 2 — Thread */}
-      <div className={`flex flex-col flex-1 overflow-hidden
-        ${mobileView !== 'thread' ? 'hidden md:flex' : 'flex'}`}>
+      {/* Right: thread */}
+      <div className={`flex flex-col flex-1 overflow-hidden ${showThread ? 'flex' : 'hidden md:flex'}`}>
         {!selectedContact ? (
           <div className="flex-1 flex items-center justify-center text-xs text-dim">
             Select a conversation
           </div>
         ) : (
           <>
+            {/* Thread header */}
             <div className="px-4 py-3 border-b border-edge shrink-0 flex items-center gap-3">
               <button
                 onClick={() => setSelectedContact(null)}
-                className="md:hidden text-dim hover:text-content text-sm leading-none"
+                className="md:hidden text-dim hover:text-content text-lg leading-none"
               >
                 ←
               </button>
+              <div className="w-9 h-9 rounded-full bg-edge flex items-center justify-center text-sm font-medium text-content shrink-0">
+                {selectedContact.name.charAt(0).toUpperCase()}
+              </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-content">{selectedContact.name}</div>
-                {selectedContact.phone && (
-                  <div className="text-[11px] text-dim">{selectedContact.phone}</div>
-                )}
+                <div className="text-sm font-semibold text-content">{selectedContact.name}</div>
+                {selectedContact.phone && <div className="text-[11px] text-dim">{selectedContact.phone}</div>}
               </div>
               {selectedContact.phone && selectedContact.fb_id && (
                 <select
@@ -233,7 +264,8 @@ function MessagesInner() {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5">
               {messages.length === 0 ? (
                 <div className="text-xs text-dim text-center py-8">No messages yet</div>
               ) : (
@@ -241,30 +273,25 @@ function MessagesInner() {
                   const isOut = msg.direction === 'outbound'
                   const mediaUrls: string[] = (msg.payload as { media?: string[] } | null)?.media ?? []
                   return (
-                    <div key={msg.id} className={`flex items-end gap-2 ${isOut ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[72%] text-[13px] leading-relaxed overflow-hidden ${
+                    <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[75%] text-[14px] leading-relaxed overflow-hidden ${
                         isOut
                           ? 'bg-blue text-white rounded-[20px] rounded-br-[4px]'
                           : 'bg-panel border border-edge text-content rounded-[20px] rounded-bl-[4px]'
                       }`}>
                         {mediaUrls.map((url, i) => (
-                          <img
-                            key={i}
-                            src={url}
-                            alt="attachment"
-                            className="w-full max-w-xs block rounded-[16px]"
-                          />
+                          <img key={i} src={url} alt="attachment" className="w-full block rounded-[16px]" />
                         ))}
                         {msg.body ? (
                           <div className={`px-4 py-2.5 ${mediaUrls.length > 0 ? 'pt-1' : ''}`}>
-                            <div>{msg.body}</div>
-                            <div className={`text-[10px] mt-1 flex items-center gap-1 ${isOut ? 'text-white/60 justify-end' : 'text-dim'}`}>
-                              <span>{fmtTime(msg.created_at)}</span>
-                              {msg.channel && <span className="opacity-50">{CHANNEL_LABEL[msg.channel]}</span>}
+                            {msg.body}
+                            <div className={`text-[10px] mt-0.5 ${isOut ? 'text-white/60 text-right' : 'text-dim'}`}>
+                              {fmtTime(msg.created_at)}
+                              {msg.channel && <span className="ml-1 opacity-60">{CHANNEL_LABEL[msg.channel]}</span>}
                             </div>
                           </div>
                         ) : mediaUrls.length > 0 ? (
-                          <div className={`px-3 pb-1 text-[10px] ${isOut ? 'text-white/60 text-right' : 'text-dim'}`}>
+                          <div className={`px-3 pb-1.5 text-[10px] ${isOut ? 'text-white/60 text-right' : 'text-dim'}`}>
                             {fmtTime(msg.created_at)}
                           </div>
                         ) : null}
@@ -276,74 +303,30 @@ function MessagesInner() {
               <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={handleSend} className="border-t border-edge p-3 flex gap-2 shrink-0">
+            {/* Reply box */}
+            <form onSubmit={handleSend} className="border-t border-edge px-3 py-3 flex items-end gap-2 shrink-0">
               <textarea
                 value={reply}
                 onChange={e => setReply(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e) } }}
-                placeholder="Reply..."
-                rows={2}
-                className="flex-1 bg-dark border border-edge px-3 py-2 text-xs text-content focus:border-blue outline-none resize-none"
+                placeholder="Message..."
+                rows={1}
+                className="flex-1 bg-panel border border-edge rounded-full px-4 py-2.5 text-sm text-content focus:border-blue outline-none resize-none"
+                style={{ maxHeight: '120px' }}
               />
               <button
                 type="submit"
                 disabled={sending || !reply.trim()}
-                className="bg-blue text-white px-4 py-2 text-xs uppercase tracking-widest hover:bg-blue/90 disabled:opacity-40 self-end"
+                className="w-9 h-9 rounded-full bg-blue text-white flex items-center justify-center disabled:opacity-40 shrink-0 hover:bg-blue/90 transition-colors"
               >
-                {sending ? '...' : 'Send'}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+                </svg>
               </button>
             </form>
           </>
         )}
       </div>
-
-      {/* Panel 4 — Contact context (desktop only) */}
-      {selectedContact && (
-        <div className="hidden lg:flex flex-col w-56 shrink-0 border-l border-edge overflow-y-auto">
-          <div className="p-4 border-b border-edge">
-            <div className="text-[10px] text-dim uppercase tracking-widest mb-3">Contact</div>
-            <div className="text-sm font-medium text-content mb-0.5">{selectedContact.name}</div>
-            {selectedContact.phone && <div className="text-[11px] text-dim">{selectedContact.phone}</div>}
-            <div className={`text-[10px] uppercase tracking-widest mt-2 ${
-              selectedContact.status === 'active' ? 'text-good' : 'text-dim'
-            }`}>{selectedContact.status}</div>
-          </div>
-
-          {selectedContact.notes && (
-            <div className="p-4 border-b border-edge">
-              <div className="text-[10px] text-dim uppercase tracking-widest mb-1.5">Notes</div>
-              <div className="text-[11px] text-content">{selectedContact.notes}</div>
-            </div>
-          )}
-
-          {selectedContact.last_contact && (
-            <div className="p-4 border-b border-edge">
-              <div className="text-[10px] text-dim uppercase tracking-widest mb-1">Last Contact</div>
-              <div className="text-[11px] text-content">
-                {new Date(selectedContact.last_contact).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
-              </div>
-            </div>
-          )}
-
-          <div className="p-4">
-            <button
-              onClick={async () => {
-                const task = prompt('Follow-up task:')
-                if (!task) return
-                await supabase.from('follow_ups').insert({
-                  task,
-                  contact_id: selectedContact.id,
-                  priority: 'normal',
-                  due_date: new Date().toISOString().split('T')[0],
-                })
-              }}
-              className="w-full text-xs text-dim border border-edge px-3 py-2 hover:text-content hover:border-blue transition-colors uppercase tracking-widest"
-            >
-              + Follow-Up
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
