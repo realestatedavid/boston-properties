@@ -21,7 +21,7 @@ const TYPE_COLORS: Record<string, string> = {
   past_client: 'text-dim',
 }
 
-const TABS = ['all', 'tenant', 'ff_lead', 'buyer', 'seller'] as const
+const TABS = ['all', 'tenant', 'ff_lead'] as const
 type Tab = typeof TABS[number]
 
 function timeAgo(dateStr: string): string {

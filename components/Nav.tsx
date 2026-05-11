@@ -14,7 +14,6 @@ const ADMIN_NAV = [
   { href: '/transactions', label: 'Ledger' },
   { href: '/follow-ups', label: 'Follow-Ups' },
   { href: '/maintenance', label: 'Maintenance' },
-  { href: '/kpis', label: 'KPIs' },
 ]
 
 const EMPLOYEE_NAV = [
