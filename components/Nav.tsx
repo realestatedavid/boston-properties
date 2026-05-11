@@ -1,7 +1,8 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useRole } from '@/components/RoleProvider'
 import { createClient } from '@/lib/supabase'
 
@@ -27,10 +28,15 @@ const EMPLOYEE_NAV = [
 ]
 
 export default function Nav() {
+  return <Suspense><NavInner /></Suspense>
+}
+
+function NavInner() {
   const pathname = usePathname()
   const router = useRouter()
   const { role, fullName } = useRole()
   const navItems = role === 'admin' ? ADMIN_NAV : EMPLOYEE_NAV
+  const searchParams = useSearchParams()
   const onMessages = pathname.startsWith('/messages')
 
   async function handleLogout() {
@@ -70,9 +76,7 @@ export default function Nav() {
                 <div className="mb-1">
                   {MESSAGE_INBOXES.map(inbox => {
                     const param = inbox.href.split('=')[1]
-                    const isInboxActive = typeof window !== 'undefined'
-                      ? new URLSearchParams(window.location.search).get('inbox') === param
-                      : false
+                    const isInboxActive = searchParams.get('inbox') === param
                     return (
                       <Link
                         key={inbox.href}

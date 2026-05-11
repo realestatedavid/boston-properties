@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import type { Contact, Message } from '@/lib/types'
@@ -46,6 +46,10 @@ function fmtTime(dateStr: string): string {
 }
 
 export default function MessagesPage() {
+  return <Suspense><MessagesInner /></Suspense>
+}
+
+function MessagesInner() {
   const supabase = createClient()
   const searchParams = useSearchParams()
   const inbox = searchParams.get('inbox') ?? 'leads'
