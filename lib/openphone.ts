@@ -9,8 +9,8 @@ export async function sendMessage(to: string, text: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      to,
-      text,
+      to: [to],
+      content: text,
       from: process.env.OPENPHONE_PHONE_NUMBER_ID,
     }),
   })

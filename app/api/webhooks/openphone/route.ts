@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     return Response.json({ ok: true })
   }
 
-  const { from, body, conversationId } = payload.data
+  const { from, body, conversationId } = payload.data?.object ?? payload.data
   const supabase = await createServerSupabaseClient()
 
   let { data: contact } = await supabase
